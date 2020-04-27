@@ -1,0 +1,15 @@
+{
+    "python.dataScience.jupyterServerURI": "http://localhost:8991",
+    "python.pythonPath": "./venv/bin/python",
+    "python.linting.pylintEnabled": false,
+    "python.linting.flake8Enabled": true,
+    "python.linting.enabled": true,
+    "editor.rulers": [79],
+    "files.watcherExclude": {
+        "**/.git/objects/**": true,
+        "**/.git/subtree-cache/**": true,
+        "**/node_modules/*/**": true,
+        "**/venv/*/**": true,
+        "**/data/*/**": true,
+      }
+}

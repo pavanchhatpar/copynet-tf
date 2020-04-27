@@ -1,0 +1,6 @@
+/data
+venv
+.env
+lock.env
+__pycache__
+*.egg-info
