@@ -5,6 +5,8 @@
  below was very helpful to understand the math from an implementation
  perspective
 
+![Python package](https://github.com/pavanchhatpar/copynet-tf/workflows/Python%20package/badge.svg)
+
 ## Environment to run examples
 ### Setup
 - Copy `sample.env` to `.env` and enter appropriate values for the variables
