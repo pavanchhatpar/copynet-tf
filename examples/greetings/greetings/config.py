@@ -2,18 +2,34 @@ import numpy as np
 from easydict import EasyDict as edict
 import logging
 
+
 __C = edict()
 cfg = __C
 
 # Start defining default config
 __C.CONFIG_NAME = 'DEFAULT'
 __C.LOG_LVL = logging.DEBUG  # returns a number
-__C.LOG_FILENAME = "~/data/log.txt"
+__C.LOG_FILENAME = "../../data/greetings/log.txt"
 __C.MAX_ARRAY_LOG = 10
-__C.SAVE_LOC = "~/data/output"
 
-__C.SSEQ_LEN = 250
-__C.TSEQ_LEN = 20
+__C.DATASET = 'https://github.com/epwalsh/nlp-models/blob/59adc47fd048e4a33e83d1fc167c3c0404aad6f0/data/greetings.tar.gz?raw=true'
+__C.GLOVE = 'http://nlp.stanford.edu/data/glove.840B.300d.zip'
+
+__C.MODEL_SAVE = '../../data/greetings/model'
+__C.SAVE_LOC = '../../data/greetings/features'
+__C.RAW_DATA = '../../data/greetings/raw'
+
+__C.SSEQ_LEN = 10
+__C.TSEQ_LEN = 10
+
+__C.EMBS_FILE = '../../data/greetings/features/glove/glove.840B.300d.txt'
+__C.VOCAB_SAVE = '../../data/greetings/features/vocab'
+
+__C.HIDDEN_DIM = 300
+__C.LR = 1e-3
+__C.CLIP_NORM = 1
+__C.EPOCHS = 5
+# End defining default config
 
 
 def _merge_a_into_b(a, b):

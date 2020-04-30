@@ -1,45 +1,73 @@
 from collections import defaultdict
 import numpy as np
 import pickle
+from typing import Dict
 
 
-# TODO check how to get embedding matrix for source and target
 class Vocab:
     def __init__(self,
-                 start_token,
-                 end_token,
-                 pad_token,
-                 unk_token,
-                 source_seq_len,
-                 target_seq_len):
+                 start_token: str,
+                 end_token: str,
+                 pad_token: str,
+                 unk_token: str,
+                 source_seq_len: int,
+                 target_seq_len: int,
+                 pretrained_vectors: Dict[str, np.ndarray] = None) -> None:
         self._start_token = start_token
         self._end_token = end_token
         self._pad_token = pad_token
         self._unk_token = unk_token
         self._source_seq_len = source_seq_len
         self._target_seq_len = target_seq_len
+        if pretrained_vectors is not None:
+            self._fit_pretrained(pretrained_vectors)
+
+    def _fit_pretrained(self,
+                        pretrained_vectors: Dict[str, np.ndarray]) -> None:
+        self._source = {}
+        self._source[self._pad_token] = 0
+        self._source[self._unk_token] = 1
+        self._source[self._start_token] = 2
+        self._source[self._end_token] = 3
+        i = 4
+        for token, vector in pretrained_vectors.items():
+            if token in self._source:
+                continue
+            self._source[token] = i
+            i += 1
+        self._target = self._source.copy()
+        self._pretrained_vectors = pretrained_vectors
+        self._source_inverse = {}
+        for token, idx in self._source.items():
+            self._source_inverse[idx] = token
+        self._target_inverse = {}
+        for token, idx in self._target.items():
+            self._target_inverse[idx] = token
 
     def fit(self,
             tokenized_source,
             tokenized_target,
+            pretrained_vectors,
             min_source_freq=1,
             min_target_freq=5):
-        source_vocab = defaultdict()
+        source_vocab = defaultdict(lambda: 0)
         for tokens in tokenized_source:
             for token in tokens:
-                source_vocab[token] += 1
+                source_vocab[token.text] += 1
 
-        target_vocab = defaultdict()
+        target_vocab = defaultdict(lambda: 0)
         for tokens in tokenized_target:
             for token in tokens:
-                target_vocab[token] += 1
+                target_vocab[token.text] += 1
 
         source_vocab = sorted(source_vocab.items(), key=lambda x: -x[1])
+        print(f"source max {source_vocab[0]} min {source_vocab[-1]}")
         if min_source_freq is not None:
             source_vocab = filter(
                 lambda x: x[1] > min_source_freq, source_vocab)
 
         target_vocab = sorted(target_vocab.items(), key=lambda x: -x[1])
+        print(f"target max {target_vocab[0]} min {target_vocab[-1]}")
         if min_target_freq is not None:
             target_vocab = filter(
                 lambda x: x[1] > min_target_freq, target_vocab)
@@ -53,7 +81,7 @@ class Vocab:
             self._source[k[0]] = i
 
         self._source_inverse = {}
-        for token, idx in self._source:
+        for token, idx in self._source.items():
             self._source_inverse[idx] = token
 
         self._target = {}
@@ -65,8 +93,10 @@ class Vocab:
             self._target[k[0]] = i
 
         self._target_inverse = {}
-        for token, idx in self._target:
+        for token, idx in self._target.items():
             self._target_inverse[idx] = token
+
+        self._pretrained_vectors = pretrained_vectors
 
     def _transform(self, tokenized, token2index, seq_len):
         res = np.zeros((len(tokenized), seq_len), dtype=np.int64)
@@ -77,7 +107,7 @@ class Vocab:
                     j -= 1
                     break
                 res[i, j] = token2index.get(
-                    token, token2index[self._unk_token])
+                    token.text, token2index[self._unk_token])
             res[i, j+1] = token2index[self._end_token]
         return res
 
@@ -137,7 +167,7 @@ class Vocab:
             raise ValueError(f"Unknown namespace: {namespace}")
 
     def _inverse_transform(self, idxed, idx2token):
-        res = np.full_like(idxed, dtype=object)
+        res = np.full_like(idxed, 'UNK', dtype=object)
         for i, idxs in enumerate(idxed):
             for j, idx in enumerate(idxs):
                 res[i, j] = self._get_token_text(idx, idx2token)
@@ -154,10 +184,13 @@ class Vocab:
     def save(self, filename_prefix):
         source_filename = filename_prefix+"_source.pkl"
         target_filename = filename_prefix+"_target.pkl"
+        pretrained_vecs_filename = filename_prefix+"_pretrained_vecs.pkl"
         with open(source_filename, "wb") as f:
             pickle.dump(self._source, f, protocol=4)
         with open(target_filename, "wb") as f:
             pickle.dump(self._target, f, protocol=4)
+        with open(pretrained_vecs_filename, "wb") as f:
+            pickle.dump(self._pretrained_vectors, f, protocol=4)
 
     @classmethod
     def load(cls,
@@ -170,17 +203,20 @@ class Vocab:
              filename_prefix):
         source_filename = filename_prefix+"_source.pkl"
         target_filename = filename_prefix+"_target.pkl"
+        pretrained_vecs_filename = filename_prefix+"_pretrained_vecs.pkl"
         inst = cls(start_token, end_token, pad_token, unk_token,
                    source_seq_len, target_seq_len)
-        with open(source_filename, "wb") as f:
+        with open(source_filename, "rb") as f:
             inst._source = pickle.load(f)
-        with open(target_filename, "wb") as f:
+        with open(target_filename, "rb") as f:
             inst._target = pickle.load(f)
+        with open(pretrained_vecs_filename, "rb") as f:
+            inst._pretrained_vectors = pickle.load(f)
         inst._source_inverse = {}
-        for token, idx in inst._source:
+        for token, idx in inst._source.items():
             inst._source_inverse[idx] = token
         inst._target_inverse = {}
-        for token, idx in inst._target:
+        for token, idx in inst._target.items():
             inst._target_inverse[idx] = token
         return inst
 
@@ -189,5 +225,22 @@ class Vocab:
             return len(self._source)
         elif namespace == 'target':
             return len(self._target)
+        else:
+            raise ValueError(f"Unknown namespace: {namespace}")
+
+    def _get_embedding_matrix(self, idx2token):
+        embedding_matrix = np.zeros((len(idx2token), 300), dtype=np.float32)
+        for idx, token in idx2token.items():
+            try:
+                embedding_matrix[idx] = self._pretrained_vectors[token]
+            except:  # noqa
+                pass
+        return embedding_matrix
+
+    def get_embedding_matrix(self, namespace):
+        if namespace == 'source':
+            return self._get_embedding_matrix(self._source_inverse)
+        elif namespace == 'target':
+            return self._get_embedding_matrix(self._target_inverse)
         else:
             raise ValueError(f"Unknown namespace: {namespace}")
