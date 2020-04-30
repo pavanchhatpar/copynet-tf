@@ -88,6 +88,8 @@ class Decoder(Model):
             state = self._init_decoder_state(state)
             output_dict = self._calculate_loss(
                 target_token_ids, target2source_ids, state)
+            # fill dummy values to make `call` and `predict` graph give
+            # consistent outputs
             output_dict["predictions"] = 1
             output_dict["predicted_probas"] = 1.0
         else:
@@ -107,6 +109,8 @@ class Decoder(Model):
         output_dict = {}
         state = self._init_decoder_state(state)
         output_dict.update(self._decode_output(state))
+        # fill dummy values to make `call` and `predict` graph give
+        # consistent outputs
         output_dict["loss"] = 1.0
         return output_dict
 
@@ -392,9 +396,6 @@ class Decoder(Model):
         source2target_slice = tf.zeros_like(
             state["source_token_ids"], dtype=tf.float32)
 
-        # tf.py_function(
-        #     self.debug, ['source_token_ids', state["source_token_ids"][:3]], [])
-
         # mask 1 if source token is not unknown
         # shape: (batch, source_seq_len)
         source_unk_mask = ~(state["source_token_ids"] == self._unk_index)
@@ -633,7 +634,7 @@ class Decoder(Model):
         # shape: (batch,)
         step_log_likelihood = tf.math.reduce_logsumexp(
             combined_gen_copy, axis=-1)
-        
+
         # tf.py_function(
         #     self.debug, ['step_log_likelihood', step_log_likelihood[:3]], [])
 

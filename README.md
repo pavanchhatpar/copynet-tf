@@ -53,3 +53,4 @@
 ## References
  - Incorporating Copying Mechanism in Sequence-to-Sequence Learning: ([paper](https://arxiv.org/abs/1603.06393))
  - AllenNLP implementation: ([blog](https://medium.com/@epwalsh10/incorporating-a-copy-mechanism-into-sequence-to-sequence-models-40917280b89d)) ([code](https://github.com/epwalsh/nlp-models))
+ - BLEU score metric: ([code](https://github.com/tensorflow/nmt/blob/master/nmt/scripts/bleu.py))

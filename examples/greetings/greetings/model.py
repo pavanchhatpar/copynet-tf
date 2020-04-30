@@ -4,6 +4,7 @@ from typing import Dict, Any
 from copynet_tf import Vocab, CopyNetDecoder
 from copynet_tf.search import BeamSearch
 from copynet_tf.layers import FixedEmbedding, FixedDense
+from copynet_tf.metrics import compute_bleu
 import os
 from tqdm import tqdm
 
@@ -28,7 +29,7 @@ class GreetingModel(Model):
         )
         self.searcher = BeamSearch(
             3, self.vocab.get_token_id(self.vocab._end_token, "target"),
-            cfg.TSEQ_LEN)
+            cfg.TSEQ_LEN - 1)
         self.encoder = Encoder(self.vocab)
         target_vocab_size = self.vocab.get_vocab_size("target")
         target_emb_mat = tf.transpose(tf.convert_to_tensor(
@@ -95,32 +96,122 @@ class GreetingModel(Model):
         else:
             self.optimizer, ckpt_saver = self._load(save_loc)
         save_prefix = os.path.join(save_loc, "ckpt")
+        nottraining = tf.constant(False)
+        training = tf.constant(True)
+        ignore_tokens = [2, 3]
+        ignore_all_tokens_after = 3
         for epoch in tf.range(epochs):
             eloss = tf.constant(0, dtype=tf.float32)
             i = tf.constant(0, dtype=tf.float32)
+            # shape: (batch_size, max_seq_len)
+            preds = None
+            # shape: (batch_size, 1, max_seq_len)
+            references = None
+            target_vocab_size = self.vocab.get_vocab_size("target")
             with tqdm(
                     dataset, desc=f"Epoch {epoch.numpy()+1}/{epochs}") as pbar:
                 for X, y in pbar.iterable:
                     enc_hidden = self.encoder.initialize_hidden_size(
                         y[0].shape[0])
                     bloss = self.train_step(X, y, enc_hidden, epoch+1, i+1)
+                    output = self.forward_loss(
+                        X, y, enc_hidden, epoch+1, i+1, nottraining)
+                    if preds is None:
+                        preds = output['predictions'][:, 0]
+                        preds_sub = preds - target_vocab_size
+                        preds_sub = tf.where(
+                            preds_sub < 0, 0, preds_sub)
+                        preds_sub = tf.gather(
+                            X[0], preds_sub, axis=-1, batch_dims=1)
+                        preds = tf.where(
+                            preds > target_vocab_size, preds_sub, preds)
+
+                        references = tf.where(y[0] == 1, y[1], y[0])
+                        references = tf.expand_dims(references, 1)
+                    else:
+                        refs = tf.where(y[0] == 1, y[1], y[0])
+                        refs = tf.expand_dims(refs, 1)
+                        references = tf.concat(
+                            [references, refs], axis=0)
+
+                        pred = output['predictions'][:, 0]
+                        pred_sub = pred - target_vocab_size
+                        pred_sub = tf.where(
+                            pred_sub < 0, 0, pred_sub)
+                        pred_sub = tf.gather(
+                            X[0], pred_sub, axis=-1, batch_dims=1)
+                        pred = tf.where(
+                            pred > target_vocab_size, pred_sub, pred)
+                        preds = tf.concat(
+                            [preds, pred], axis=0)
                     pbar.update(1)
                     i += 1
                     eloss = (eloss*(i-1) + bloss)/i
                     metrics = {"train-loss": f"{eloss:.4f}"}
                     pbar.set_postfix(metrics)
+                metrics["train-bleu"] = compute_bleu(
+                    references.numpy(), preds.numpy(),
+                    ignore_tokens=ignore_tokens,
+                    ignore_all_tokens_after=ignore_all_tokens_after)[0]
+                metrics["train-bleu-smooth"] = compute_bleu(
+                    references.numpy(), preds.numpy(), smooth=True,
+                    ignore_tokens=ignore_tokens,
+                    ignore_all_tokens_after=ignore_all_tokens_after)[0]
+                pbar.set_postfix(metrics)
+
+                # shape: (batch_size, max_seq_len)
+                preds = None
+                # shape: (batch_size, 1, max_seq_len)
+                references = None
                 if eval_set is not None:
                     vloss = tf.constant(0, dtype=tf.float32)
                     n = tf.constant(0, dtype=tf.float32)
-                    training = tf.constant(True)
                     for X, y in eval_set:
                         enc_hidden = self.encoder.initialize_hidden_size(
                             y[0].shape[0])
                         loss = self.forward_loss(
                             X, y, enc_hidden, epoch+1, n+1, training)
                         vloss += loss['loss']
+                        output = self.forward_loss(
+                            X, y, enc_hidden, epoch+1, n+1, nottraining)
+                        if preds is None:
+                            preds = output['predictions'][:, 0]
+                            preds_sub = preds - target_vocab_size
+                            preds_sub = tf.where(
+                                preds_sub < 0, 0, preds_sub)
+                            preds_sub = tf.gather(
+                                X[0], preds_sub, axis=-1, batch_dims=1)
+                            preds = tf.where(
+                                preds > target_vocab_size, preds_sub, preds)
+
+                            references = tf.where(y[0] == 1, y[1], y[0])
+                            references = tf.expand_dims(references, 1)
+                        else:
+                            refs = tf.where(y[0] == 1, y[1], y[0])
+                            refs = tf.expand_dims(refs, 1)
+                            references = tf.concat(
+                                [references, refs], axis=0)
+
+                            pred = output['predictions'][:, 0]
+                            pred_sub = pred - target_vocab_size
+                            pred_sub = tf.where(
+                                pred_sub < 0, 0, pred_sub)
+                            pred_sub = tf.gather(
+                                X[0], pred_sub, axis=-1, batch_dims=1)
+                            pred = tf.where(
+                                pred > target_vocab_size, pred_sub, pred)
+                            preds = tf.concat(
+                                [preds, pred], axis=0)
                         n += 1
                     metrics['val-loss'] = f"{vloss/n:.4f}"
+                    metrics["val-bleu"] = compute_bleu(
+                        references.numpy(), preds.numpy(),
+                        ignore_tokens=ignore_tokens,
+                        ignore_all_tokens_after=ignore_all_tokens_after)[0]
+                    metrics["val-bleu-smooth"] = compute_bleu(
+                        references.numpy(), preds.numpy(), smooth=True,
+                        ignore_tokens=ignore_tokens,
+                        ignore_all_tokens_after=ignore_all_tokens_after)[0]
                     pbar.set_postfix(metrics)
                 ckpt_saver.save(file_prefix=save_prefix)
 
