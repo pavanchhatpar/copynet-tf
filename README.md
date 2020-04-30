@@ -1,7 +1,11 @@
 # CopyNet implementation with TensorFlow 2
-Uses `TF 2.0` and above APIs with `tf.keras` too
+ - Incorporating Copying Mechanism in Sequence-to-Sequence Learning
+ - Uses `TensorFlow 2.0` and above APIs with `tf.keras` too
+ - Adapted from AllenNLP's PyTorch implementation, their blog referenced 
+ below was very helpful to understand the math from an implementation
+ perspective
 
-## Environment 
+## Environment to run examples
 ### Setup
 - Copy `sample.env` to `.env` and enter appropriate values for the variables
  - A brief description of each is provided as a comment in that file
@@ -37,9 +41,15 @@ Uses `TF 2.0` and above APIs with `tf.keras` too
 
 ### Note on Dockerized environment
  - The dockerized environment is specifically helpful and recommended when 
- using `GPU` is possible
+ using `GPU`
  - It takes care of many nuances involved in setting up CUDA. Your host machine
  should just have correct NVIDIA drivers and nothing else
+ - It is recommended to run the examples in this environment to ensure all
+ correct dependencies are met
 
 ## Run examples
  - Instructions to run an example are detailed in its own folders respectively
+
+## References
+ - Incorporating Copying Mechanism in Sequence-to-Sequence Learning: ([paper](https://arxiv.org/abs/1603.06393))
+ - AllenNLP implementation: ([blog](https://medium.com/@epwalsh10/incorporating-a-copy-mechanism-into-sequence-to-sequence-models-40917280b89d)) ([code](https://github.com/epwalsh/nlp-models))
