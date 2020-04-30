@@ -12,7 +12,8 @@ __C.LOG_LVL = logging.DEBUG  # returns a number
 __C.LOG_FILENAME = "../../data/greetings/log.txt"
 __C.MAX_ARRAY_LOG = 10
 
-__C.DATASET = 'https://github.com/epwalsh/nlp-models/blob/59adc47fd048e4a33e83d1fc167c3c0404aad6f0/data/greetings.tar.gz?raw=true'
+__C.DATASET = ('https://github.com/epwalsh/nlp-models/blob/59adc47fd048e4a33e8'
+               + '3d1fc167c3c0404aad6f0/data/greetings.tar.gz?raw=true')
 __C.GLOVE = 'http://nlp.stanford.edu/data/glove.840B.300d.zip'
 
 __C.MODEL_SAVE = '../../data/greetings/model'
