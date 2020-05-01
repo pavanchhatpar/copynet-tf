@@ -10,6 +10,7 @@ setup(
     name="copynet-tf",
     description="CopyNet with TensorFlow 2.0",
     long_description=long_description,
+    long_description_content_type='text/markdown',
     url="https://github.com/pavanchhatpar/copynet-tf",
     packages=find_packages(),
     version="0.1.0",

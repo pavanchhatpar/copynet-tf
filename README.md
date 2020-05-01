@@ -6,6 +6,7 @@
  perspective
 
 ![Python package](https://github.com/pavanchhatpar/copynet-tf/workflows/Python%20package/badge.svg)
+![Upload Python Package](https://github.com/pavanchhatpar/copynet-tf/workflows/Upload%20Python%20Package/badge.svg)
 
 ## Environment to run examples
 ### Setup
