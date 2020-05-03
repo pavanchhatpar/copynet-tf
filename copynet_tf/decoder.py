@@ -112,6 +112,8 @@ class Decoder(Model):
         # fill dummy values to make `call` and `predict` graph give
         # consistent outputs
         output_dict["loss"] = 1.0
+        output_dict["attentive_weights"] = 1.0
+        output_dict["selective_weights"] = 1.0
         return output_dict
 
     def _init_decoder_state(
@@ -156,6 +158,8 @@ class Decoder(Model):
 
         # Update the decoder state by taking a step through the RNN.
         state = self._decoder_step(input_choices, selective_weights, state)
+        del state["selective_weights"]
+        del state["attentive_weights"]
         # Get the un-normalized generation scores for each token in the target
         # vocab.
         # shape: (batch_size, target_vocab_size)
@@ -391,6 +395,7 @@ class Decoder(Model):
         state : `Dict[str, tf.Tensor]`
         """
         batch_size, target_seq_len = target_token_ids.shape
+        _, source_seq_len = state["source_token_ids"].shape
         num_decoding_steps = target_seq_len - 1
         # shape: (batch, source_seq_len)
         source2target_slice = tf.zeros_like(
@@ -418,6 +423,11 @@ class Decoder(Model):
         # shape: (batch, num_decoding_steps)
         step_log_likelihoods = tf.zeros(
             (batch_size, num_decoding_steps), dtype=tf.float32)
+
+        all_attentive_weights = tf.zeros(
+            (batch_size, num_decoding_steps, source_seq_len), dtype=tf.float32)
+        all_selective_weights = tf.zeros(
+            (batch_size, num_decoding_steps, source_seq_len), dtype=tf.float32)
         for timestep in tf.range(num_decoding_steps):
             # shape: (batch,)
             target_input_slice = target_token_ids[:, timestep]
@@ -447,6 +457,30 @@ class Decoder(Model):
             # Update decoder hidden state by stepping through the decoder
             state = self._decoder_step(
                 target_input_slice, selective_weights, state)
+
+            # shape: (batch_size, source_seq_len)
+            attn_weights = tf.squeeze(state["attentive_weights"], -1)
+
+            indices = tf.expand_dims(
+                tf.range(batch_size, dtype=tf.int32), 1)
+            # shape: (batch_size, 2)
+            indices = tf.concat([
+                indices,
+                tf.fill(
+                    (batch_size, 1),
+                    timestep)], 1)
+
+            all_attentive_weights = tf.tensor_scatter_nd_update(
+                all_attentive_weights, indices, attn_weights)
+
+            # shape: (batch_size, source_seq_len)
+            sel_weights = tf.squeeze(state["selective_weights"], -2)
+
+            all_selective_weights = tf.tensor_scatter_nd_update(
+                all_selective_weights, indices, sel_weights)
+
+            del state["selective_weights"]
+            del state["attentive_weights"]
 
             # shape: (batch, target_vocab_size)
             generation_scores = self._get_generation_scores(state)
@@ -495,7 +529,11 @@ class Decoder(Model):
         # shape: ()
         loss = -tf.reduce_sum(log_likelihood) / batch_size
 
-        return {"loss": loss}
+        return {
+            "loss": loss,
+            "attentive_weights": all_attentive_weights,
+            "selective_weights": all_selective_weights,
+        }
 
     def _decoder_step(self,
                       last_predictions: tf.Tensor,
@@ -539,6 +577,9 @@ class Decoder(Model):
         # shape: (batch, decoder_out_dim)
         state["decoder_hidden"] = self.gru(
             projected_decoder_input, initial_state=state["decoder_hidden"])
+
+        state["attentive_weights"] = attentive_weights
+        state["selective_weights"] = selective_weights
         return state
 
     def _get_generation_scores(
