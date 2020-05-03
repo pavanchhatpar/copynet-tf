@@ -15,7 +15,7 @@ class BeamSearch(Searcher):
         self._end_index = end_index
         self._max_decoding_steps = max_decoding_steps
 
-    def debug(self, name, value):   
+    def debug(self, name, value):
         self.logger.debug(f"Debug {name} {value}")
 
     def _first_token(self,

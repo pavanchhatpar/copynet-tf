@@ -111,13 +111,17 @@ class Vocab:
             res[i, j+1] = token2index[self._end_token]
         return res
 
-    def transform(self, tokenized, namespace):
+    def transform(self, tokenized, namespace, seq_len=None):
         if namespace == 'source':
+            if seq_len is None:
+                seq_len = self._source_seq_len
             return self._transform(
-                tokenized, self._source, self._source_seq_len)
+                tokenized, self._source, seq_len)
         elif namespace == 'target':
+            if seq_len is None:
+                seq_len = self._target_seq_len
             return self._transform(
-                tokenized, self._target, self._target_seq_len)
+                tokenized, self._target, seq_len)
         else:
             raise ValueError(f"Unknown namespace: {namespace}")
 
