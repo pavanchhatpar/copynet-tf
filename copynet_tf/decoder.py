@@ -255,6 +255,10 @@ class Decoder(Model):
         adjusted_predictions = adjusted_predictions * only_copied_mask
         # shape: (batch_size, source_seq_len)
         source_token_ids = state["source_token_ids"]
+        # shape: (batch, source_seq_len)
+        source_spl_mask = ~(state["source_token_ids"] == self._unk_index)
+        source_spl_mask &= ~(state["source_token_ids"] == self._start_index)
+        source_spl_mask &= ~(state["source_token_ids"] == self._end_index)
         # shape: (batch_size, 1)
         adjusted_prediction_ids = tf.gather(
             source_token_ids,
@@ -269,6 +273,8 @@ class Decoder(Model):
         source_only_copied = (
             source_only_copied
             & tf.cast(tf.expand_dims(only_copied_mask, -1), bool))
+
+        source_copied_and_generated &= source_spl_mask
 
         # shape: (batch_size, source_seq_len)
         mask = source_only_copied | source_copied_and_generated
@@ -403,7 +409,9 @@ class Decoder(Model):
 
         # mask 1 if source token is not unknown
         # shape: (batch, source_seq_len)
-        source_unk_mask = ~(state["source_token_ids"] == self._unk_index)
+        source_spl_mask = ~(state["source_token_ids"] == self._unk_index)
+        source_spl_mask &= ~(state["source_token_ids"] == self._start_index)
+        source_spl_mask &= ~(state["source_token_ids"] == self._end_index)
 
         # shape: (batch,)
         copy_slice = tf.fill((batch_size, ), tf.constant(
@@ -449,7 +457,7 @@ class Decoder(Model):
                     == tf.expand_dims(target2source_ids[:, timestep + 1], 1))
 
                 # shape: (batch, source_seq_len)
-                source2target_slice = source2target_slice & source_unk_mask
+                source2target_slice = source2target_slice & source_spl_mask
 
                 # shape: (batch, source_seq_len)
                 source2target_slice = tf.cast(source2target_slice, tf.float32)
