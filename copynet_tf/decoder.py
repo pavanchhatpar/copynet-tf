@@ -274,10 +274,12 @@ class Decoder(Model):
             source_only_copied
             & tf.cast(tf.expand_dims(only_copied_mask, -1), bool))
 
-        source_copied_and_generated &= source_spl_mask
+        # source_copied_and_generated &= source_spl_mask
 
         # shape: (batch_size, source_seq_len)
         mask = source_only_copied | source_copied_and_generated
+
+        mask &= source_spl_mask
         # shape: (batch_size, source_seq_len)
         selective_weights = masked_softmax(
             state["copy_log_probs"], mask, axis=1)
@@ -321,6 +323,8 @@ class Decoder(Model):
                 generation_log_probs,
                 tf.expand_dims(source2target_ids_slice, -1),
                 axis=1, batch_dims=1)
+
+            # shape: (batch_size,)
             combined_scores = tf.math.reduce_logsumexp(
                 tf.concat([
                     selected_generation_log_probs, copy_log_probs_to_add],
@@ -384,6 +388,9 @@ class Decoder(Model):
 
         # shape: (batch_size, target_vocab_size + source_seq_len)
         modified_log_probs = tf.concat(modified_log_probs_list, axis=-1)
+        # tf.py_function(
+        #     self.debug, ['modified_log_probas', tf.reduce_logsumexp(
+        #         modified_log_probs[:3], axis=-1)], [])
 
         return modified_log_probs
 

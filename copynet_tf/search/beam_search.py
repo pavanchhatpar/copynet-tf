@@ -92,11 +92,18 @@ class BeamSearch(Searcher):
             # shape: (batch_size, beam_width*beam_width)
             topkpreds = tf.reshape(
                 topkpreds, (batch_size, self.beam_width*self.beam_width))
+            # shape: (batch_size*beam_width, )
+            has_no_end = ~tf.reduce_any(
+                predictions[:, :timestep] == self._end_index, axis=-1)
+            # shape: (batch_size, beam_width*beam_width)
+            has_no_end = tf.reshape(tf.cast(
+                tf.repeat(has_no_end, self.beam_width, axis=0), tf.float32),
+                (batch_size, self.beam_width*self.beam_width))
             # shape: (batch_size, beam_width*beam_width)
             step_log_probs = tf.reshape(
                 tf.repeat(log_probabilities, self.beam_width, axis=0),
                 (batch_size, self.beam_width*self.beam_width))
-            step_log_probs = step_log_probs + topkpreds
+            step_log_probs = step_log_probs + topkpreds*has_no_end
 
             # shape: (batch_size, beam_width) both
             topsteplog, topsteplogidx = tf.math.top_k(
@@ -110,6 +117,17 @@ class BeamSearch(Searcher):
             topkidx = tf.gather(topkidx, topsteplogidx, axis=-1, batch_dims=1)
             # shape: (batch_size*beam_width, )
             topkidx = tf.reshape(topkidx, (batch_size*self.beam_width,))
+
+            # shape: (batch_size, beam_width)
+            has_no_end = tf.gather(
+                has_no_end, topsteplogidx, axis=-1, batch_dims=1)
+            # shape: (batch_size*beam_width, )
+            has_no_end = tf.reshape(has_no_end, (batch_size*self.beam_width,))
+            topkidx = tf.where(
+                tf.cast(has_no_end, bool),
+                topkidx,
+                self._end_index)
+
             indices = tf.expand_dims(
                 tf.range(batch_size*self.beam_width, dtype=tf.int32), 1)
             # shape: (batch_size*beam_width, 2)

@@ -28,7 +28,7 @@ class GreetingModel(Model):
             cfg.VOCAB_SAVE
         )
         self.searcher = BeamSearch(
-            3, self.vocab.get_token_id(self.vocab._end_token, "target"),
+            10, self.vocab.get_token_id(self.vocab._end_token, "target"),
             cfg.TSEQ_LEN - 1)
         self.encoder = Encoder(self.vocab)
         target_vocab_size = self.vocab.get_vocab_size("target")
