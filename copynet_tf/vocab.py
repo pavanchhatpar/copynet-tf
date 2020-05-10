@@ -145,9 +145,9 @@ class Vocab:
 
     def add_token(self, token, namespace):
         if namespace == 'source':
-            return self._get_token_id(token, self._source)
+            return self._add_token(token, self._source)
         elif namespace == 'target':
-            return self._get_token_id(token, self._target)
+            return self._add_token(token, self._target)
         else:
             raise ValueError(f"Unknown namespace: {namespace}")
 
