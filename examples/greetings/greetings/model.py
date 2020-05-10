@@ -27,6 +27,8 @@ class GreetingModel(Model):
             cfg.TSEQ_LEN,
             cfg.VOCAB_SAVE
         )
+        copy_token = "@COPY@"
+        self.vocab.add_token(copy_token, "target")
         self.searcher = BeamSearch(
             10, self.vocab.get_token_id(self.vocab._end_token, "target"),
             cfg.TSEQ_LEN - 1)
@@ -39,7 +41,7 @@ class GreetingModel(Model):
             [target_emb_mat, tf.zeros(target_vocab_size)])
         self.decoder = CopyNetDecoder(
             self.vocab, self.encoder.get_output_dim(),
-            self.searcher, self.decoder_output_layer)
+            self.searcher, self.decoder_output_layer, copy_token=copy_token)
         emb_mat = tf.convert_to_tensor(
             self.vocab.get_embedding_matrix("source"))
         self.source_embedder = FixedEmbedding(

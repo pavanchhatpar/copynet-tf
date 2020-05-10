@@ -22,7 +22,8 @@ class Decoder(Model):
         super(Decoder, self).__init__(**kwargs)
         self.vocab = vocab
         self.logger = logging.getLogger(__name__)
-        self._copy_index = self.vocab.add_token(copy_token, "target")
+        self._copy_index = self.vocab.get_token_id(
+            copy_token, "target")
         self._unk_index = self.vocab.get_token_id(
             self.vocab._unk_token, "target")
         self._start_index = self.vocab.get_token_id(

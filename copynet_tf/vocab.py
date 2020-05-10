@@ -136,18 +136,19 @@ class Vocab:
         else:
             raise ValueError(f"Unknown namespace: {namespace}")
 
-    def _add_token(self, token, token2index):
+    def _add_token(self, token, token2index, index2token):
         if token in token2index:
             return token2index[token]
         i = len(token2index)
         token2index[token] = i
+        index2token[i] = token
         return i
 
     def add_token(self, token, namespace):
         if namespace == 'source':
-            return self._add_token(token, self._source)
+            return self._add_token(token, self._source, self._source_inverse)
         elif namespace == 'target':
-            return self._add_token(token, self._target)
+            return self._add_token(token, self._target, self._target_inverse)
         else:
             raise ValueError(f"Unknown namespace: {namespace}")
 
