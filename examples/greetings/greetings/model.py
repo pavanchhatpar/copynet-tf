@@ -124,17 +124,3 @@ class GreetingModel(Model):
     def predict_step(self, data):
         X, _ = data
         return self(X)
-
-    def _load(self, save_loc):
-        optimizer = tf.keras.optimizers.Adam(cfg.LR, clipnorm=cfg.CLIP_NORM)
-        ckpt = tf.train.Checkpoint(
-            optimizer=optimizer,
-            encoder=self.encoder,
-            decoder=self.decoder
-        )
-        ckpt.restore(
-            tf.train.latest_checkpoint(save_loc)).expect_partial()
-        return optimizer, ckpt
-
-    def load(self, save_loc):
-        self._load(save_loc)
