@@ -1,10 +1,9 @@
-FROM tensorflow/tensorflow:latest-gpu-py3-jupyter AS nb
+FROM tensorflow/tensorflow:2.2.0-gpu-jupyter AS nb
 WORKDIR /tf/src
 COPY . /tf/src
 ARG JUPYTER_PASSWD
 ENV HOME /tf
-RUN pip uninstall -y enum34\
-    && pip install --upgrade pip setuptools\
+RUN pip install --upgrade pip setuptools\
     && pip install -r requirements.txt\
     && python -m spacy download en_core_web_sm\
     && jupyter notebook --generate-config\

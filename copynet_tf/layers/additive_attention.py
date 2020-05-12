@@ -22,6 +22,7 @@ class BahdanauAttention(Layer):
             raise ValueError(
                 "Sequence length of values and values_mask should match")
 
+    @tf.function
     def call(self, query, values, values_mask=None):
         self._verify_shapes(query, values, values_mask)
         # query hidden state shape == (batch_size, hidden size)

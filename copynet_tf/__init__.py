@@ -1,4 +1,4 @@
-from .decoder import Decoder as CopyNetDecoder
+from .decoderv2 import Decoder as CopyNetDecoder
 from .vocab import Vocab
 
 

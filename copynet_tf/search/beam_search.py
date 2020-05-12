@@ -1,8 +1,9 @@
 import tensorflow as tf
-from typing import Dict, Callable, Tuple
+from typing import Callable, Tuple
 import logging
 
 from .searcher import Searcher
+from ..types import State
 
 
 class BeamSearch(Searcher):
@@ -20,10 +21,10 @@ class BeamSearch(Searcher):
 
     def _first_token(self,
                      start_predictions: tf.Tensor,
-                     state: Dict[str, tf.Tensor],
+                     state: State,
                      step: Callable[
-                         [tf.Tensor, Dict[str, tf.Tensor]],
-                         Tuple[tf.Tensor, Dict[str, tf.Tensor]]]
+                         [tf.Tensor, State],
+                         Tuple[tf.Tensor, State]]
                      ) -> Tuple[tf.Tensor, tf.Tensor]:
         batch_size = start_predictions.shape[0]
         # shape: (batch_size*beam_width, max_decoding_steps)
@@ -63,12 +64,13 @@ class BeamSearch(Searcher):
 
         return state, predictions, log_probs
 
+    @tf.function
     def search(self,
                start_predictions: tf.Tensor,
-               start_state: Dict[str, tf.Tensor],
+               start_state: State,
                step: Callable[
-                   [tf.Tensor, Dict[str, tf.Tensor]],
-                   Tuple[tf.Tensor, Dict[str, tf.Tensor]]]
+                   [tf.Tensor, State],
+                   Tuple[tf.Tensor, State]]
                ) -> Tuple[tf.Tensor, tf.Tensor]:
 
         batch_size = start_predictions.shape[0]

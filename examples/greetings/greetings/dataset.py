@@ -3,7 +3,8 @@ import en_core_web_sm
 import os
 import tensorflow as tf
 from copynet_tf import Vocab
-from typing import Dict, Tuple, Any
+from copynet_tf.types import StrDict
+from typing import Tuple
 
 from .glove_reader import GloVeReader
 from .config import cfg
@@ -27,12 +28,12 @@ class Dataset:
         self.train = train.map(self.parse_ex, num_parallel_calls=AUTOTUNE)
         self.test = test.map(self.parse_ex, num_parallel_calls=AUTOTUNE)
 
-    def __getstate__(self) -> Dict[str, Any]:
+    def __getstate__(self) -> StrDict:
         dic = self.__dict__.copy()
         del dic['logger']
         return dic
 
-    def __setstate__(self, dic: Dict[str, Any]) -> None:
+    def __setstate__(self, dic: StrDict) -> None:
         self.__dict__.update(dic)
         self.logger = logging.getLogger(__name__)
 

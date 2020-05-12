@@ -1,6 +1,7 @@
 import tensorflow as tf
 
 
+@tf.function
 def masked_log_softmax(logits: tf.Tensor,
                        mask: tf.Tensor,
                        axis: int = None,
@@ -11,6 +12,7 @@ def masked_log_softmax(logits: tf.Tensor,
     return tf.nn.log_softmax(logits, axis, name)
 
 
+@tf.function
 def masked_softmax(logits: tf.Tensor,
                    mask: tf.Tensor,
                    axis: int = None,

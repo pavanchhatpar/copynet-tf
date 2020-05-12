@@ -1,16 +1,16 @@
 import tensorflow as tf
-from tensorflow.keras import Model
-from tensorflow.keras.layers import Bidirectional, GRU
-from typing import Dict, Any, List
+from tensorflow.keras.layers import Bidirectional, GRU, Layer
+from typing import List
 from copynet_tf import Vocab
+from copynet_tf.types import StrDict
 
 from .config import cfg
 
 
-class Encoder(Model):
+class Encoder(Layer):
     def __init__(self,
                  vocab: Vocab,
-                 **kwargs: Dict[str, Any]) -> None:
+                 **kwargs: StrDict) -> None:
         super(Encoder, self).__init__(**kwargs)
         self.vocab = vocab
         self._build()
@@ -28,6 +28,7 @@ class Encoder(Model):
             tf.zeros((batch_sz, cfg.HIDDEN_DIM//2))
         ]
 
+    @tf.function
     def call(
             self,
             source_token_ids: tf.Tensor,
