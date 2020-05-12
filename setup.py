@@ -13,7 +13,7 @@ setup(
     long_description_content_type='text/markdown',
     url="https://github.com/pavanchhatpar/copynet-tf",
     packages=find_packages(),
-    version="0.1.5",
+    version="0.2.0",
     author='Pavan Chhatpar',
     author_email='pavanchhatpar@gmail.com'
 )
