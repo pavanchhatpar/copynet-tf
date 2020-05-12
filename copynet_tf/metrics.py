@@ -351,4 +351,5 @@ class BLEU(Metric):
 
 #     bleu = geo_mean * bp
 
-#     return (bleu, precisions, bp, ratio, translation_length, reference_length)
+#     return (
+#           bleu, precisions, bp, ratio, translation_length, reference_length)

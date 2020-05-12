@@ -416,49 +416,40 @@ class Decoder(Layer):
                 generation_log_probs, indices, combined_scores)
             # We have to combine copy scores for duplicate source tokens so
             # that we can find the overall most likely source token. So, if
-            # this is the first occurence of this particular source token, we
+            # this is the last occurence of this particular source token, we
             # add the log_probs from all other occurences, otherwise we zero it
-            # out since it was already accounted for.
-            if i < (source_seq_len - 1):
-                # Sum copy scores from future occurences of source token.
-                # shape: (batch_size, source_seq_len - i)
-                source_future_occurences = tf.cast(
-                    source_token_ids[:, (i + 1):]
+            # out since it will be accounted for later.
+            if i > 0:
+                # Sum copy scores from past occurences of source token.
+                # shape: (batch_size, i)
+                source_past_occurences = tf.cast(
+                    source_token_ids[:, :i]
                     == tf.expand_dims(source_token_ids[:, i], -1), tf.float32)
-                # shape: (batch_size, source_seq_len - i)
-                future_copy_log_probs = (
-                    copy_log_probs[:, (i + 1):]
-                    + tf.math.log(source_future_occurences + 1e-35)
+                # shape: (batch_size, i)
+                past_copy_log_probs = (
+                    copy_log_probs[:, :i]
+                    + tf.math.log(source_past_occurences + 1e-35)
                 )
-                # shape: (batch_size, 1 + source_seq_len - i)
+                # shape: (batch_size, 1 + i)
                 combined = tf.concat(
                     [tf.expand_dims(copy_log_probs_slice, -1),
-                     future_copy_log_probs], axis=-1
+                     past_copy_log_probs], axis=-1
                 )
                 # shape: (batch_size,)
                 copy_log_probs_slice = tf.math.reduce_logsumexp(
                     combined, axis=-1)
-                # tf.print(
-                #     "copy slice", copy_log_probs_slice[:3],
-                #     output_stream="file:///tf/src/data/log1.txt", summarize=-1)
-            if i > 0:
-                # Remove copy log_probs that we have already accounted for.
-                # shape: (batch_size, i)
-                source_previous_occurences = tf.cast(source_token_ids[
-                    :, 0:i
+            if i < (source_seq_len - 1):
+                # Remove copy log_probs that will be accounted for later.
+                # shape: (batch_size, source_seq_len - i)
+                source_future_occurences = tf.cast(source_token_ids[
+                    :, (i+1):
                 ] == tf.expand_dims(source_token_ids[:, i], -1), tf.int32)
                 # shape: (batch_size,)
                 duplicate_mask = tf.cast(tf.reduce_sum(
-                    source_previous_occurences, axis=-1) == 0, tf.float32)
+                    source_future_occurences, axis=-1) == 0, tf.float32)
                 copy_log_probs_slice = (
                     copy_log_probs_slice + tf.math.log(duplicate_mask + 1e-35)
                 )
-            #     tf.print(
-            #         "copy slice 2", copy_log_probs_slice[:3],
-            #         output_stream="file:///tf/src/data/log1.txt", summarize=-1)
-            # tf.print(
-            #     "copy probs to add", copy_log_probs_to_add_mask[:3],
-            #     output_stream="file:///tf/src/data/log1.txt", summarize=-1)
             # Finally, we zero-out copy scores that we added to the generation
             # scores above so that we don't double-count them.
             # shape: (batch_size,)
