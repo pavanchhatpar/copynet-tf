@@ -8,7 +8,14 @@
 ![Python package](https://github.com/pavanchhatpar/copynet-tf/workflows/Python%20package/badge.svg)
 ![Upload Python Package](https://github.com/pavanchhatpar/copynet-tf/workflows/Upload%20Python%20Package/badge.svg)
 
-## Environment to run examples
+## Run the examples
+ - It is recommended to run examples using the package
+ - Instructions to run an example are detailed in its own folders respectively
+ - The example has a Google colab link for end-to-end demo on running with
+ package and source as well.
+ - Refer next section to setup the local environment only if running via source
+
+## Environment to run examples from source
 ### Setup
 - Copy `sample.env` to `.env` and enter appropriate values for the variables
  - A brief description of each is provided as a comment in that file
@@ -49,9 +56,6 @@
  should just have correct NVIDIA drivers and nothing else
  - It is recommended to run the examples in this environment to ensure all
  correct dependencies are met
-
-## Run examples
- - Instructions to run an example are detailed in its own folders respectively
 
 ## References
  - Incorporating Copying Mechanism in Sequence-to-Sequence Learning: ([paper](https://arxiv.org/abs/1603.06393))
