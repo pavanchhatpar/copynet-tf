@@ -1,3 +1,4 @@
+#!/bin/bash
 if [ ! -z $1 ]; then
     if [ $1 = "--no-docker" ]; then
         build_docker=false
