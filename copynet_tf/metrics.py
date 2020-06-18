@@ -36,7 +36,7 @@ class BLEU(Metric):
         self.ignore_tokens = ignore_tokens
         self.ignore_all_tokens_after = ignore_all_tokens_after
         self.smooth = smooth
-        self.weights = weights
+        self.scoreweights = weights
 
         self.matches_by_order = self.add_weight(
             name='matches_by_order', initializer='zeros',
@@ -196,7 +196,7 @@ class BLEU(Metric):
         if tf.reduce_min(precisions) > 0:
             p_log_sum = tf.nn.weighted_moments(
                 tf.math.log(precisions), axes=-1,
-                frequency_weights=self.weights)
+                frequency_weights=self.scoreweights)
             geo_mean = tf.exp(p_log_sum)
         else:
             geo_mean = tf.constant(0, tf.float32)

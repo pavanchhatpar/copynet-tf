@@ -18,8 +18,8 @@ fi
 if [ -f "lock.env" ]; then
     source "lock.env"
     if [ "$build_docker" = true ]; then
-        docker rmi copynet-tf/nb:latest
         docker rmi copynet-tf/bash:latest
+        docker rmi copynet-tf/nb:latest
     fi
     rm -rf $PYTHON_VENV_PATH
     rm ./data

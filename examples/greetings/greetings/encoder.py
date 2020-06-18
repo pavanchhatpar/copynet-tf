@@ -41,7 +41,4 @@ class Encoder(Layer):
 
         encoder_final_output = tf.concat([enc_final_f, enc_final_b], -1)
 
-        return {
-            "encoder_output": encoder_output,
-            "encoder_final_output": encoder_final_output,
-        }
+        return encoder_output, encoder_final_output

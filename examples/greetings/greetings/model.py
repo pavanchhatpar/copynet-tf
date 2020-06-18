@@ -1,6 +1,6 @@
 import tensorflow as tf
 from tensorflow.keras import Model
-from copynet_tf import Vocab, CopyNetDecoder
+from copynet_tf import Vocab, GRUDecoder
 from copynet_tf.search import BeamSearch
 from copynet_tf.layers import FixedEmbedding, FixedDense
 from copynet_tf.types import StrDict
@@ -40,7 +40,7 @@ class GreetingModel(Model):
         self.decoder_output_layer = FixedDense(
             target_vocab_size,
             [target_emb_mat, tf.zeros(target_vocab_size)])
-        self.decoder = CopyNetDecoder(
+        self.decoder = GRUDecoder(
             self.vocab, self.encoder.get_output_dim(),
             self.searcher, self.decoder_output_layer, copy_token=copy_token)
         emb_mat = tf.convert_to_tensor(
@@ -56,12 +56,13 @@ class GreetingModel(Model):
         enc_hidden = self.encoder.initialize_hidden_size(batch_size)
         source_embeddings = self.source_embedder(source_token_ids)
         source_mask = self.source_embedder.compute_mask(source_token_ids)
-        state = self.encoder(
+        encoder_output, encoder_final_output = self.encoder(
             source_token_ids, source_embeddings,
             source_mask, enc_hidden, training=training)
         output_dict = self.decoder(
-            source_token_ids, source2target_ids, source_mask, state,
-            target_token_ids, target2source_ids, training=training)
+            source_token_ids, source2target_ids, source_mask, encoder_output,
+            encoder_final_output, target_token_ids, target2source_ids,
+            training=training)
         return output_dict
 
     @tf.function
