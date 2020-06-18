@@ -29,12 +29,14 @@ import tensorflow as tf
 class BLEU(Metric):
     def __init__(
             self, name='bleu', max_order=4, ignore_tokens=[],
-            ignore_all_tokens_after=-1, smooth=False, **kwargs):
+            ignore_all_tokens_after=-1, smooth=False,
+            weights=(0.25, 0.25, 0.25, 0.25), **kwargs):
         super(BLEU, self).__init__(name=name, **kwargs)
         self.max_order = max_order
         self.ignore_tokens = ignore_tokens
         self.ignore_all_tokens_after = ignore_all_tokens_after
         self.smooth = smooth
+        self.weights = weights
 
         self.matches_by_order = self.add_weight(
             name='matches_by_order', initializer='zeros',
@@ -192,7 +194,9 @@ class BLEU(Metric):
                         i, tf.constant(0, tf.float32))
         precisions = precisions.stack()
         if tf.reduce_min(precisions) > 0:
-            p_log_sum = tf.reduce_mean(tf.math.log(precisions))
+            p_log_sum = tf.nn.weighted_moments(
+                tf.math.log(precisions), axes=-1,
+                frequency_weights=self.weights)
             geo_mean = tf.exp(p_log_sum)
         else:
             geo_mean = tf.constant(0, tf.float32)
@@ -213,143 +217,3 @@ class BLEU(Metric):
         zeros = tf.zeros((self.max_order,), tf.float32)
         self.matches_by_order.assign(zeros)
         self.possible_matches_by_order.assign(zeros)
-
-
-# def _get_ngrams(segment, max_order):
-#     """Extracts all n-grams upto a given maximum order from an input segment.
-#     Args:
-#         segment: text segment from which n-grams will be extracted.
-#         max_order: maximum length in tokens of the n-grams returned by this
-#             methods.
-#     Returns:
-#         The Counter containing all n-grams upto max_order in segment
-#         with a count of how many times each n-gram occurred.
-#     """
-#     ngram_counts = collections.Counter()
-#     for order in range(1, max_order + 1):
-#         for i in range(0, len(segment) - order + 1):
-#             ngram = tuple(segment[i:i+order])
-#             ngram_counts[ngram] += 1
-#     return ngram_counts
-
-
-# def _preprocess(
-#         reference_corpus, translation_corpus,
-#         ignore_tokens, ignore_all_tokens_after):
-#     if ignore_all_tokens_after is not None:
-#         reference_corpus_n = []
-#         for references in reference_corpus:
-#             references_n = []
-#             for reference in references:
-#                 i = 0
-#                 while (i < len(reference)
-#                        and reference[i] != ignore_all_tokens_after):
-#                     i += 1
-#                 i += 1
-#                 references_n.append(reference[:i])
-#             reference_corpus_n.append(references_n)
-#         reference_corpus = reference_corpus_n
-
-#         translation_corpus_n = []
-#         for translation in translation_corpus:
-#             i = 0
-#             while (i < len(translation)
-#                    and translation[i] != ignore_all_tokens_after):
-#                 i += 1
-#             i += 1
-#             translation_corpus_n.append(translation[:i])
-#         translation_corpus = translation_corpus_n
-
-#     if ignore_tokens is not None:
-#         reference_corpus_n = []
-#         for references in reference_corpus:
-#             references_n = []
-#             for reference in references:
-#                 ref = []
-#                 for token in reference:
-#                     if token not in ignore_tokens:
-#                         ref.append(token)
-#                 references_n.append(ref)
-#             reference_corpus_n.append(references_n)
-#         reference_corpus = reference_corpus_n
-
-#         translation_corpus_n = []
-#         for translation in translation_corpus:
-#             trans = []
-#             for token in translation:
-#                 if token not in ignore_tokens:
-#                     trans.append(token)
-#             translation_corpus_n.append(trans)
-#         translation_corpus = translation_corpus_n
-#     return reference_corpus, translation_corpus
-
-
-# def compute_bleu(reference_corpus, translation_corpus, max_order=4,
-#                  smooth=False, ignore_tokens=None,
-#                  ignore_all_tokens_after=None):
-#     """Computes BLEU score of translated segments against one or more
-#     references.
-#     Args:
-#         reference_corpus: list of lists of references for each translation.
-#             Each reference should be tokenized into a list of tokens.
-#         translation_corpus: list of translations to score. Each translation
-#             should be tokenized into a list of tokens.
-#         max_order: Maximum n-gram order to use when computing BLEU score.
-#         smooth: Whether or not to apply Lin et al. 2004 smoothing.
-#     Returns:
-#         3-Tuple with the BLEU score, n-gram precisions, geometric mean of
-#         n-gram precisions and brevity penalty.
-#     """
-#     reference_corpus, translation_corpus = _preprocess(
-#         reference_corpus, translation_corpus,
-#         ignore_tokens, ignore_all_tokens_after)
-#     matches_by_order = [0] * max_order
-#     possible_matches_by_order = [0] * max_order
-#     reference_length = 0
-#     translation_length = 0
-#     for (references, translation) in zip(reference_corpus,
-#                                          translation_corpus):
-#         reference_length += min(len(r) for r in references)
-#         translation_length += len(translation)
-
-#         merged_ref_ngram_counts = collections.Counter()
-#         for reference in references:
-#             merged_ref_ngram_counts |= _get_ngrams(reference, max_order)
-#             translation_ngram_counts = _get_ngrams(translation, max_order)
-#             overlap = translation_ngram_counts & merged_ref_ngram_counts
-#         for ngram in overlap:
-#             matches_by_order[len(ngram)-1] += overlap[ngram]
-#         for order in range(1, max_order+1):
-#             possible_matches = len(translation) - order + 1
-#             if possible_matches > 0:
-#                 possible_matches_by_order[order-1] += possible_matches
-
-#     precisions = [0] * max_order
-#     for i in range(0, max_order):
-#         if smooth:
-#             precisions[i] = ((matches_by_order[i] + 1.) /
-#                              (possible_matches_by_order[i] + 1.))
-#         else:
-#             if possible_matches_by_order[i] > 0:
-#                 precisions[i] = (float(matches_by_order[i]) /
-#                                  possible_matches_by_order[i])
-#             else:
-#                 precisions[i] = 0.0
-
-#     if min(precisions) > 0:
-#         p_log_sum = sum((1. / max_order) * math.log(p) for p in precisions)
-#         geo_mean = math.exp(p_log_sum)
-#     else:
-#         geo_mean = 0
-
-#     ratio = float(translation_length) / reference_length
-
-#     if ratio > 1.0:
-#         bp = 1.
-#     else:
-#         bp = math.exp(1 - 1. / ratio)
-
-#     bleu = geo_mean * bp
-
-#     return (
-#           bleu, precisions, bp, ratio, translation_length, reference_length)
