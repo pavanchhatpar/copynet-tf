@@ -3,7 +3,7 @@ tensorflow-datasets==3.1.0
 flake8==3.7.9
 spacy==2.2.4
 easydict==1.9
-pyyaml==5.3.1
+pyyaml==5.4
 -e .
 wget==3.2
 tqdm==4.45.0
